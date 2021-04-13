@@ -7,7 +7,6 @@ library(corrplot)
 library(mgcv)
 library(dlnm)
 library(splines)
-library(stats)
 library(zoo)
 
 #data import
@@ -31,18 +30,17 @@ vis_miss(dat)
 
 #temporal variables
 dat$date <- as.Date(dat$date, format = "%m/%d/%Y")
-dat$month<- as.factor(month(dat$date, label = T))
+dat$month<- as.factor(month(dat$date))
 dat$year<- as.factor(format(dat$date, '%Y'))
 dat$dow <- wday(as.Date(dat$date, format = "%m/%d/%Y"))
 weekdays1 <- c('Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday')
 dat$wDay <- factor((weekdays(dat$date) %in% weekdays1), 
                        levels=c(FALSE, TRUE), labels=c('weekend', 'weekday'))
-dat$week_num<- week(ymd(dat$date))  
+dat$week_num<- week(ymd(dat$date))
 #year to quarter conversion use zoo library for as.nearmon function
 yq <- as.yearqtr(as.yearmon(dat$date, "%Y %m/%d/") + 1/12)
-dat$season <- factor(format(yq, "%q"), levels = 1:4, 
-                    labels = c("winter", "spring", "summer", "fall"))
-
+dat$season <- factor(format(yq, "%q"), levels = 1:4,
+                     labels = c("winter", "spring", "summer", "fall"))
 
 #filter missing values
 dat_n <- na.omit(dat)
@@ -58,7 +56,7 @@ myvars <- c("asthma_all","asthma_ped","htn_all","Co.1Hr.Avg","Co.1Hr.Max","Co.8H
             "Co.8Hr.Max","Max.Sol.Rad","Mean.Sol.Rad","No.Avg", "No.Max","Noy.Avg",
             "Noy.Max","Noyno.Avg","Noyno.Max","Ozone.1Hr.Avg","Ozone.1Hr.Max",
             "Ozone.8Hr.Avg","Ozone.8Hr.Max","Pm1025Lc.Avg","Pm1025Lc.Max","Pm10Tot.1Hr.Avg", 
-            "pm25_1hr_avg","pm25_1hr_avg.1","pres_burn","rh_max","rh_mean",
+            "pm25_1hr_avg","pm25_max","pres_burn","rh_max","rh_mean",
             "so2_1hr_avg","so2_1hr_max","so2_5min_avg","so2_5min_max","tavg","tmax",
             "wind_sp_max","X_so2_3hr_blk_avg","X_so2_3hr_blk_max")
 dat_cor<- dat_n[myvars]
