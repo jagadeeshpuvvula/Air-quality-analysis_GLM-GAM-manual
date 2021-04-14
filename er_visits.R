@@ -8,25 +8,10 @@ library(mgcv)
 library(dlnm)
 library(splines)
 library(zoo)
-
+library(dplyr)
 #data import
-dat <- read.csv ("C:/Users/jagad/Desktop/douglas_cnty_asth_htn_ER/analytic_dataset.csv", 
+dat <- read.csv ("C:/Users/jagad/Desktop/douglas_cnty_asth_htn_ER/analytic_dat.csv", 
                  header = T,fileEncoding="UTF-8-BOM")
-
-str(dat)
-
-#data formating
-dat$asthma_all<- as.numeric(dat$asthma_all)
-dat$htn_all<- as.numeric(dat$htn_all)
-dat$asthma_ped<- as.numeric(dat$asthma_ped)
-dat$Pm1025Lc.Max<- as.numeric(dat$Pm1025Lc.Max)
-dat$acres<- as.numeric(dat$acres)
-dat$pres_burn<- as.numeric(dat$pres_burn)
-dat$pm25_1hr_avg.1<- as.numeric(dat$pm25_1hr_avg.1)
-dat$rh_max<- as.numeric(dat$rh_max)
-
-#missing data
-vis_miss(dat)
 
 #temporal variables
 dat$date <- as.Date(dat$date, format = "%m/%d/%Y")
@@ -42,55 +27,45 @@ yq <- as.yearqtr(as.yearmon(dat$date, "%Y %m/%d/") + 1/12)
 dat$season <- factor(format(yq, "%q"), levels = 1:4,
                      labels = c("winter", "spring", "summer", "fall"))
 
+#convert all numeric variables to numeric
+con.names = dat %>% select_if(is.numeric) %>% colnames()
+dat[,con.names] = data.frame(apply(dat[con.names], 2, as.numeric))
+
+dat$dow<- as.factor(dat$dow)
+dat$dow<- as.factor(dat$dow)
+
+str(dat)
+
+#missing data
+vis_miss(dat)
+
 #filter missing values
 dat_n <- na.omit(dat)
+dat_n<- subset(dat_n, select = -c(date))
 
 #descriptive stats
 desc_stat<- stat.desc(dat_n, basic = F)
 
-#REGRESSION COEFFICIENT
-################## Continous variables ######################
-ls(dat_n)
+#correlation matrix
+# generating large feature matrix (cols=features, rows=samples)
+num_features <- 79 # how many features
+num_samples <- 526 # how many samples
+dat_cor <- matrix(runif(num_features * num_samples),
+                  nrow = num_samples, ncol = num_features)
 
-myvars <- c("asthma_all","asthma_ped","htn_all","Co.1Hr.Avg","Co.1Hr.Max","Co.8Hr.Avg",
-            "Co.8Hr.Max","Max.Sol.Rad","Mean.Sol.Rad","No.Avg", "No.Max","Noy.Avg",
-            "Noy.Max","Noyno.Avg","Noyno.Max","Ozone.1Hr.Avg","Ozone.1Hr.Max",
-            "Ozone.8Hr.Avg","Ozone.8Hr.Max","Pm1025Lc.Avg","Pm1025Lc.Max","Pm10Tot.1Hr.Avg", 
-            "pm25_1hr_avg","pm25_max","pres_burn","rh_max","rh_mean",
-            "so2_1hr_avg","so2_1hr_max","so2_5min_avg","so2_5min_max","tavg","tmax",
-            "wind_sp_max","X_so2_3hr_blk_avg","X_so2_3hr_blk_max")
-dat_cor<- dat_n[myvars]
+# setting some dummy names for the features e.g. f23
+colnames(dat_n) <- paste0("f", 1:ncol(dat_n))
 
-M<-cor(dat_cor)
-
-##################### CORR MATRIX- MATRIX FUNCTION #############
-cor.mtest <- function(mat, ...) {
-  mat <- as.matrix(mat)
-  n <- ncol(mat)
-  p.mat<- matrix(NA, n, n)
-  diag(p.mat) <- 0
-  for (i in 1:(n - 1)) {
-    for (j in (i + 1):n) {
-      tmp <- cor.test(mat[, i], mat[, j], ...)
-      p.mat[i, j] <- p.mat[j, i] <- tmp$p.value
-    }
-  }
-  colnames(p.mat) <- rownames(p.mat) <- colnames(mat)
-  p.mat
+# let's make 30% of all features to be correlated with feature "f1"
+num_feat_corr <- num_features * .3
+idx_correlated_features <- as.integer(seq(from = 1,
+                                          to = num_features,
+                                          length.out = num_feat_corr))[-1]
+for (i in idx_correlated_features) {
+  dat_n[,i] <- dat_n[,1] + runif(num_samples) # adding some noise
 }
-# matrix of the p-value of the correlation
-p.mat <- cor.mtest(dat_cor)
-head(p.mat[, 1:15])
 
-#Correlation matrix
-col <- colorRampPalette(c("#BB4444", "#EE9988", "#FFFFFF", "#77AADD", "#4477AA"))
-corrplot(M, method="color", col=col(200),  
-         type="upper", order="original", addrect = 2,
-         addCoef.col = "black", # Add coefficient of correlation
-         tl.col="black", tl.srt=45, #Text label color and rotation
-         # Combine with significance
-         p.mat = p.mat, sig.level = 0.05, insig = "pch", 
-         # hide correlation coefficient on the principal diagonal
-         diag=FALSE)
-
+corrplot(cor(dat_n), diag = FALSE, order = "FPC",
+         tl.pos = "td", tl.cex = 1, method = "color", 
+         type = "upper", sig.level = 0.05, insig = "blank")
 
