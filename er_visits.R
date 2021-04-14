@@ -39,6 +39,9 @@ str(dat)
 #missing data
 vis_miss(dat)
 
+
+
+
 #filter missing values
 dat_n <- na.omit(dat)
 dat_n<- subset(dat_n, select = -c(date))
