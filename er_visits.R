@@ -12,7 +12,7 @@ library(tsModel)
 library(mda)
 library(lattice)
 #data import
-dat <- read.csv ("C:/Users/jagad/Desktop/douglas_cnty_asth_htn_ER/analytic_dat.csv", 
+dat <- read.csv ("C:/Users/jagad/Desktop/douglas_cnty_asth_htn_ER/criteria_poll/analytic_dataset.csv", 
                  header = T,fileEncoding="UTF-8-BOM")
 
 #temporal variables
@@ -50,7 +50,7 @@ dat_n<- subset(dat_nmis, select = -c(date, month, year, dow, wDay, week_num, sea
 
 # TS variables: month,year, dow, wDay, week_num, season, pres_burn
 
-dat_max_var <- subset(dat_nmis, select = c(asthma_ped, asthma_all, htn_all,
+dat_max_var <- subset(dat, select = c(asthma_ped, asthma_all, htn_all,
                                            Co.1Hr.Max, No.Max,Noy.Max, Noyno.Max, 
                                            Ozone.1Hr.Max, Pm1025Lc.Max,
                                            pm25_Max, so2_1hr_max,so2_5min_max, month,
@@ -209,5 +209,53 @@ p <- xyplot(y ~ xpts | f, as.table = TRUE,
             type = "b", ylab = ylab,pch = 20)
             
 print(p)
+
+
+
+#####################################################3
+######################################################
+#GAM MODEL
+
+#splines = 2 - 12 times number of study years
+library(gam)
+dfValues <- c(2, 4, 6, 8, 10, 12, 14)
+control <- gam.control(epsilon = 0.00000001,bf.epsilon = 0.00000001)
+
+modelsGAM <- sapply(dfValues, function(dfVal){
+  total.df <- dfVal * 4
+  fit <- gam(asthma_ped ~ Co.1Hr.Max + tmax + 
+             s(date, total.df), data = dat_max_var,
+             family = poisson, control = control)
+  gamex <- gam.exact(fit)
+  gamex.coef <- gamex$coefficients["Co.1Hr.Max","A-exact SE"]
+  c(coef(fit)["Co.1Hr.Max"], gamex.coef)
+               
+})
+
+######################################################
+CO <- dat_max_var$Co.1Hr.Max
+x<- unclass(dat_max_var$date)
+use <- complete.cases(CO, x)
+br.fit <- bruto(x[use], CO[use])
+df.CO <- br.fit$df
+
+asthma <- dat_max_var$asthma_ped
+use <- complete.cases(asthma, x)
+br.fit <- bruto(x[use], asthma[use])
+df.asthma <- br.fit$df
+
+fit1 <- gam(asthma_ped ~ Co.1Hr.Max + s(date,df.CO), 
+            data = dat_max_var, family = quasipoisson)
+
+fit2 <- gam(asthma_ped ~ Co.1Hr.Max + s(date,df.asthma), 
+            data = dat_max_var, family = quasipoisson)
+
+v1 <- gam.exact(fit1)
+v2 <- gam.exact(fit2)
+
+
+
+
+
 
 
