@@ -11,8 +11,15 @@ library(splines)
 library(tsModel)
 library(mda)
 library(lattice)
-#data import
+
+#Select dataset from below
+
+#raw data import with pollen and criteria pollutants
 dat <- read.csv ("C:/Users/jagad/Desktop/douglas_cnty_asth_htn_ER/criteria_poll/analytic_dataset.csv", 
+                 header = T,fileEncoding="UTF-8-BOM")
+
+#imputed data with criteria pollutants
+dat <- read.csv ("C:/Users/jagad/Desktop/douglas_cnty_asth_htn_ER/criteria_poll/pca_imputed_sd_var.csv", 
                  header = T,fileEncoding="UTF-8-BOM")
 
 #temporal variables
@@ -254,7 +261,12 @@ v1 <- gam.exact(fit1)
 v2 <- gam.exact(fit2)
 
 
+#EHP code
+cb1.sd <- crossbasis(dat$int_SDL0, lag=4, argvar=list(fun="lin",cen=0),
+                     arglag=list(fun="integer")) 
 
+cb2.nsd <- crossbasis(dat$int_NSDL0, lag=4, argvar=list(fun="lin",cen=0),
+                      arglag=list(fun="integer")) 
 
 
 
